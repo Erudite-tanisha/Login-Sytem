@@ -4,44 +4,55 @@ from django.views.decorators.csrf import csrf_exempt
 from . models import UserDetails
 from django.contrib import messages
 import json
+from .forms import SignupForm, LoginForm
 
 
 # Create your views here.
 @csrf_exempt
 def Signup(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        if UserDetails.objects.filter(Email=email).exists(): 
-            messages.error(request, 'This email already exists!!')
-            return render(request, 'Components/Signup.html')
-        try:
-            user = UserDetails.objects.create(Username=username, Email=email, Password=password)  # Correct field names
-            user.save()
-            messages.success(request, 'Account created successfully! Please log in.')
-            return redirect('login') 
-        except Exception as e:
-            messages.error(request, e)
-            return render(request, 'Components/Signup.html')
-    return render(request, 'Components/Signup.html')
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            try:
+                user = UserDetails.objects.create(Username=username,Email=email,Password=password)
+                user.save()
+                messages.success(request, 'Account created successfully! Please log in.')
+                return redirect('login')
+            except Exception as e:
+                    messages.error(request, f"An error occurred: {e}")
+        else:
+            messages.error(request, 'Invalid form submission.')
+    else:
+        form = SignupForm()
+    return render(request, 'Components/Signup.html', {'form': form})
 
         
 @csrf_exempt       
 def LoginUser(request):
     if request.method == 'POST':
-        username = request.POST.get('username')  
-        password = request.POST.get('password')
-        user=UserDetails.objects.get(Username=username)
-        if user.Password == password:
-            data = {
-                "username" : username
-            }
-            return render(request,'Components/home.html', data)  
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            try :
+                user = UserDetails.objects.get(Username=username)
+                if user.Password == password:  
+                    data = {
+                        "username": username
+                    }
+                    return render(request, 'Components/Home.html', data)
+                else:
+                    messages.error(request, "Invalid Password or Username!!")
+            except UserDetails.DoesNotExist:
+                messages.error(request, "User does not exist!!")
         else:
-            messages.error(request, 'Invalid username or password')
-            return render(request, 'Components/Login.html')
-    return render(request, 'Components/Login.html')
+            messages.error(request, "Invalid Form!!")    
+    else:
+        form = LoginForm()
+    return render(request, 'Components/Login.html', {'form' : form})
 
 
 def HomeView(request):
