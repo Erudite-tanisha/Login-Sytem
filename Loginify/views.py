@@ -33,6 +33,11 @@ def Signup(request):
 @csrf_exempt       
 def LoginUser(request):
     if request.method == 'POST':
+        if request.session.get('username'):
+            return JsonResponse({
+                "success" : True,
+                "message" : f"{request.session.get('username')} is already logged in!!"
+            })
         form = LoginForm(request.POST)
         if form.is_valid():
             username = form.cleaned_data['username']
@@ -40,6 +45,8 @@ def LoginUser(request):
             try :
                 user = UserDetails.objects.get(Username=username)
                 if user.Password == password:  
+                    request.session['username'] = user.Username
+                    request.session.set_expiry(10) 
                     data = {
                         "username": username
                     }
@@ -59,9 +66,6 @@ def HomeView(request):
     # user = UserDetails.objects.get()
     # username = user.username
     # print(username)
-    # data = {
-    #     "username": username
-    # }
     return render(request, 'Components/home.html')
 
 
